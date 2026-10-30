@@ -1,0 +1,26 @@
+.build/
+dist/
+.swiftpm/
+.DS_Store
+
+.history/
+
+# Local device validation and exported runtime data
+/VALIDATION.md
+*.jsonl
+*.log
+authorization.json
+control-state.json
+fan-control-lease.json
+
+# Signing credentials and local environment
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.key
+*.pem
+*.p8
+*.keychain
+*.keychain-db
