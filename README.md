@@ -2,7 +2,7 @@
 
 原生 SwiftUI macOS 菜单栏风扇监测与控制工具，面向带风扇的 Apple M 系列 Mac。
 
-当前版本：**1.8.7，兼容性验证中的开发版本**。M2 Pro 上验证过直接控制；部分 M3 Max 固件存在间歇拒绝模式写入的情况，兼容交接与恢复流程仍需实机验证。检测到风扇不代表已经验证该机型的调速能力。
+当前版本：**1.8.7**。M2 Pro 上验证过直接控制；M3 Max 的兼容交接修改已收到实机测试通过的用户反馈。其他机型按硬件能力检测开放功能，尚未逐一验证；检测到风扇不代表已经验证该机型的全部调速行为。
 
 ## 功能
 
@@ -30,9 +30,23 @@ open dist/FanCool.app
 - `dist/FanCool.app`：主程序、后台程序及图标资源。
 - `dist/FanCool.zip`：完整 App 压缩包。
 
+### 生成 DMG 安装包
+
+```sh
+# 构建最新 App 并生成只读、压缩的 DMG
+bash scripts/package-dmg.sh
+
+# 已经构建过且 App 内包含许可证时，可跳过重新构建
+bash scripts/package-dmg.sh --skip-build
+```
+
+输出为 `dist/FanCool-<版本>.dmg` 和对应的 `.dmg.sha256` 校验文件。DMG 内包含 `FanCool.app` 和指向 `/Applications` 的快捷入口；打开后将 App 拖入“应用程序”，推出磁盘映像，再从“应用程序”启动。
+
+DMG 打包会保留 App 原有签名，不自动进行 Developer ID 签名或 Apple 公证，也不会安装调速后台。后台仍由 App 设置页在本机单独授权安装。
+
 默认采用本地 ad-hoc 签名，不需要付费开发者账号。构建脚本也支持通过 `CODE_SIGN_IDENTITY` 指定已有签名身份。当前没有接入固定私有签名、Developer ID 公证或免重复认证的后台更新机制。
 
-本仓库提交源码及必要资源，不提交本地构建产物、调速日志、授权记录或签名私钥。尚未发布 GitHub Release 安装包。
+本仓库提交源码及必要资源，不提交本地构建产物、调速日志、授权记录或签名私钥。DMG 安装包及校验文件见 [GitHub Releases](https://github.com/Crow0687/FanCool/releases)。
 
 ## 首次使用与权限
 
@@ -71,7 +85,7 @@ dist/FanCool.app/Contents/MacOS/FanCool --sensors
 open -n dist/FanCool.app --args --demo
 ```
 
-1.8.7 构建通过 357 项核心检查及 57 项界面检查。检查包含延迟交接、取消、失联、超时、高温、双风扇回滚及恢复记录处理，不执行真实 SMC 写入。目标 M3 Max 的最终实机结果仍待确认。
+1.8.7 构建通过 357 项核心检查及 57 项界面检查。自动检查包含延迟交接、取消、失联、超时、高温、双风扇回滚及恢复记录处理，不执行真实 SMC 写入。M2 Pro 已进行本机控制验证；M3 Max 于 2026-10-30 收到实机测试通过的用户反馈。
 
 在设置中可以导出最近调速日志。日志包含写入及其结果、模式、目标、实际 RPM、`Ftst` 与热状态；它记录写入接受情况，不能仅凭 `completed` 判断风扇已达到目标。
 
