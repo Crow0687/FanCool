@@ -98,4 +98,6 @@ scripts/                 构建、打包和诊断脚本
 
 ## 许可证
 
-尚未添加 `LICENSE`，开源许可证待项目维护者确认。
+项目源代码和文档采用 [MIT 许可证](LICENSE)，版权署名为 Crow0687。允许使用、修改、商用及再分发，需保留版权和许可证声明。
+
+第三方参考及声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。当前风扇图像及其衍生 App 图标暂不纳入 MIT 授权，原始参考图的权利仍待确认，详情见 [素材说明](Resources/fan-rotor-provenance.md)。

@@ -20,6 +20,7 @@ cp "$bin_path/FanCool" "$app/Contents/MacOS/FanCool"
 cp "$bin_path/FanCoolHelper" "$app/Contents/MacOS/"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 cp Resources/fan-rotor.png "$app/Contents/Resources/"
+cp LICENSE THIRD_PARTY_NOTICES.md Resources/fan-rotor-provenance.md "$app/Contents/Resources/"
 # Command-line previews use the same asset as the packaged app.
 cp Resources/fan-rotor.png "$bin_path/"
 swift scripts/make-icon.swift "$PWD/.build/FanCool.iconset" "$PWD/Resources/fan-rotor.png"
