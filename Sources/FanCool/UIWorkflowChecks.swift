@@ -4,7 +4,7 @@ import FanCoolCore
 
 /// Exercises the same model actions as the native UI, always with demo hardware.
 @MainActor
-func runUIWorkflowChecks() throws {
+func runUIWorkflowChecks() async throws {
     var count = 0
     func expect(_ value: Bool, _ label: String) throws {
         guard value else { throw FanCoolError.hardware("UI check failed: \(label)") }
@@ -159,6 +159,9 @@ func runUIWorkflowChecks() throws {
     try expect(noAuthorization.control.fans.isEmpty && !noAuthorization.showSettings && !noAuthorization.busy
         && noAuthorization.status.contains("待启用"), "unauthorized startup stays system without prompting or opening settings")
 
+    // This check models first use; saved-session authorization is covered by
+    // the restart checks, including its prerequisite release gate.
+    store.removeObject(forKey: "FanCool.appliedSession.v1")
     let authorizationGate = FanModel(preferences: store)
     authorizationGate.snapshot = .demo
     authorizationGate.startSmart()
@@ -167,5 +170,6 @@ func runUIWorkflowChecks() throws {
     authorizationGate.closeSettings()
     try expect(!authorizationGate.showSettings, "pending authorization can be dismissed")
 
-    print("PASS: \(count) UI workflow checks using demo hardware. No real SMC writes or authorization performed.")
+    count += try await runWakeResumeChecks()
+    print("PASS: \(count) UI workflow checks using simulated hardware. No real SMC writes or authorization performed.")
 }

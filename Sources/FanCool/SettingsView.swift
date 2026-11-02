@@ -33,7 +33,7 @@ struct SettingsView: View {
             authorization
             safety
             diagnostics
-            Text("FanCool \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.7")")
+            Text("FanCool \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.9")")
                 .font(.system(size: 10)).foregroundStyle(Palette.secondary)
         }.padding(.horizontal, 22).padding(.bottom, 22)
     }

@@ -2,7 +2,24 @@ import Foundation
 import FanCoolCore
 
 @MainActor
-final class HelperClient {
+protocol FanControlClient: AnyObject {
+    var isInstalled: Bool { get }
+    func authorize() async throws
+    func uninstall() async throws
+    func heartbeat() async throws -> String?
+    func set(fan: Int, rpm: Double) async throws
+    func set(percentage: Double, fan: Int) async throws
+    func restore(fan: Int) async throws
+    func startSmart(profile: SmartProfile) async throws
+    func updateSmartProfile(_ profile: SmartProfile) async throws
+    func state() async throws -> ControlState
+    func recentWriteLog() async throws -> String
+    func release(reason: String) async throws
+    func disconnect()
+}
+
+@MainActor
+final class HelperClient: FanControlClient {
     private var connection: NSXPCConnection?
     var isConnected = false
     private let clientHash = HelperIdentity.currentCodeHash()

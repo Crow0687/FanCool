@@ -155,7 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         popover.performClose(nil)
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "FanCool", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.7",
+            .applicationName: "FanCool", .applicationVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.9",
             .credits: NSAttributedString(string: "轻巧、清晰的 Mac 风扇监测与控制。\n首次调速需要系统管理员授权。")
         ])
     }
@@ -215,11 +215,15 @@ if CommandLine.arguments.contains("--diagnose") || CommandLine.arguments.contain
         semaphore.signal()
     }
     semaphore.wait()
+} else if CommandLine.arguments.contains("--ui-checks") {
+    Task { @MainActor in
+        do { try await runUIWorkflowChecks(); exit(0) }
+        catch { fputs("\(error.localizedDescription)\n", stderr); exit(1) }
+    }
+    RunLoop.main.run()
 } else {
     try MainActor.assumeIsolated {
-        if CommandLine.arguments.contains("--ui-checks") {
-            try runUIWorkflowChecks()
-        } else if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > index + 1 {
+        if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > index + 1 {
             NSApplication.shared.setActivationPolicy(.prohibited)
             let model = FanModel(demo: true)
             if CommandLine.arguments.contains("--quiet-preview") { model.openSettings(); model.draftProfile = .quiet; model.saveProfile(); model.closeSettings() }
