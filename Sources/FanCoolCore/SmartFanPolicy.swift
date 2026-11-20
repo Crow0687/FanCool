@@ -11,6 +11,7 @@ public struct SmartDecision: Sendable {
 /// Experimental comfort policy; percentages are shares of each fan's maximum RPM.
 /// This policy does not replace firmware thermal protection.
 public struct SmartFanPolicy {
+    public static let sustainedHeatReleaseDelay: TimeInterval = 30 * 60
     public static var curve: [(temperature: Double, percentage: Double)] { SmartProfile.cool.curve }
     public private(set) var profile: SmartProfile
     private var profileChangedAt: Date?
@@ -26,7 +27,7 @@ public struct SmartFanPolicy {
     public mutating func setProfile(_ profile: SmartProfile, now: Date) {
         guard self.profile != profile else { return }
         self.profile = profile; profileChangedAt = now; descentSince = nil
-        // Preserve EMA, last output, rate history and the sustained-hot timer.
+        // Preserve EMA, last output, rate history and the sustained-heat timer.
     }
 
     public static func curvePercentage(at temperature: Double, profile: SmartProfile = .defaultProfile) -> Double {
@@ -64,16 +65,18 @@ public struct SmartFanPolicy {
         }
         if temperature >= 95 { if veryHotSince == nil { veryHotSince = now } }
         else { veryHotSince = nil }
-        if let veryHotSince, now.timeIntervalSince(veryHotSince) >= 15 {
+        if let veryHotSince, now.timeIntervalSince(veryHotSince) >= Self.sustainedHeatReleaseDelay {
             return .init(percentage: 100, filteredTemperature: smooth,
-                reason: "持续高温，已请求交回 macOS 散热管理", emergency: true, releaseToSystem: true)
+                reason: "控制温度连续达到 95°C 满 30 分钟，已请求交回 macOS 散热管理",
+                emergency: true, releaseToSystem: true)
         }
         // Emergency decisions use the raw trusted temperature, never the delayed EMA.
+        // ControlSession also releases on thermal pressure or failed control.
         if temperature >= 90 {
             profileChangedAt = nil
             lastOutput = 100; descentSince = nil; descentReference = max(smooth, temperature)
             return .init(percentage: 100, filteredTemperature: smooth,
-                reason: "原始控制温度达到 90°C，临时全速散热", emergency: true, releaseToSystem: false)
+                reason: "原始控制温度达到 90°C，保持全速散热", emergency: true, releaseToSystem: false)
         }
         let boost = rapidRiseSamples >= 2 ? 10.0 : 0.0
         let desired = min(100, max(minimumPercentage, Self.curvePercentage(at: smooth, profile: profile) + boost))

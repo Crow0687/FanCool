@@ -311,7 +311,29 @@ for tick in 1...15 {
     smartSession.heartbeat(now: start.addingTimeInterval(Double(tick)))
     smartSession.check(now: start.addingTimeInterval(Double(tick)))
 }
-expect(smartHardware.manual.isEmpty && smartSession.notice?.contains("持续高温") == true, "persistent high temperature releases to the OS after full cooling attempt")
+expect(smartSession.state.smartEnabled && smartHardware.manual[0] == 5349 && smartHardware.manual[1] == 5777,
+    "persistent high temperature maintains smart full cooling beyond the former 15 second cutoff")
+let sustainedWrites = smartHardware.writes
+for tick in 16...120 {
+    smartSession.heartbeat(now: start.addingTimeInterval(Double(tick)))
+    smartSession.check(now: start.addingTimeInterval(Double(tick)))
+}
+expect(smartSession.state.smartEnabled && smartHardware.manual[0] == 5349 && smartHardware.manual[1] == 5777,
+    "two minutes of sustained high temperature never drops healthy smart fans to system idle")
+expect(smartHardware.writes == sustainedWrites, "sustained emergency cooling does not repeatedly write unchanged full targets")
+smartSession.check(now: start.addingTimeInterval(121), thermalPressure: .serious)
+expect(!smartSession.state.smartEnabled && smartHardware.manual.isEmpty,
+    "serious system thermal pressure still releases sustained full cooling")
+try smartSession.startSmart(now: start)
+for tick in 1...1799 {
+    smartSession.heartbeat(now: start.addingTimeInterval(Double(tick)))
+    smartSession.check(now: start.addingTimeInterval(Double(tick)))
+}
+expect(smartSession.state.smartEnabled && smartHardware.manual[0] == 5349 && smartHardware.manual[1] == 5777,
+    "continuous 95 degrees retains full smart cooling through 29 minutes 59 seconds")
+smartSession.heartbeat(now: start.addingTimeInterval(1800)); smartSession.check(now: start.addingTimeInterval(1800))
+expect(!smartSession.state.smartEnabled && smartHardware.manual.isEmpty && smartSession.notice?.contains("30 分钟") == true,
+    "continuous 95 degrees releases both fans at the 30 minute boundary")
 
 let stalled = FakeHardware(); stalled.actualOverride = 0
 let stalledSession = ControlSession(hardware: stalled, now: start)
@@ -393,8 +415,23 @@ var hotSwitch = SmartFanPolicy()
 _ = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start)
 for tick in 1...14 { _ = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(Double(tick))) }
 hotSwitch.setProfile(.quiet, now: start.addingTimeInterval(14))
-let hotRelease = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(15))
-expect(hotRelease.releaseToSystem, "changing profiles cannot reset the sustained-high-temperature safety timer")
+let hotDecision = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(15))
+expect(hotDecision.percentage == 100 && hotDecision.emergency && !hotDecision.releaseToSystem,
+    "switching to quiet during sustained high temperature cannot reduce full cooling or end smart mode")
+for tick in 16...1799 { _ = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(Double(tick))) }
+hotSwitch.setProfile(.balanced, now: start.addingTimeInterval(1799))
+let hotTimeout = try hotSwitch.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(1800))
+expect(hotTimeout.releaseToSystem, "profile changes cannot restart the 30 minute sustained-heat timer")
+var interruptedHeat = SmartFanPolicy()
+_ = try interruptedHeat.evaluate(temperature: 95, minimumPercentage: 26, now: start)
+for tick in 1...1798 { _ = try interruptedHeat.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(Double(tick))) }
+_ = try interruptedHeat.evaluate(temperature: 94.9, minimumPercentage: 26, now: start.addingTimeInterval(1799))
+for tick in 1800...3599 { _ = try interruptedHeat.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(Double(tick))) }
+let beforeRestartedTimeout = try interruptedHeat.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(3599.5))
+expect(!beforeRestartedTimeout.releaseToSystem && beforeRestartedTimeout.percentage == 100,
+    "a temperature below 95 resets the timer instead of accumulating separate hot intervals")
+let restartedTimeout = try interruptedHeat.evaluate(temperature: 95, minimumPercentage: 26, now: start.addingTimeInterval(3600))
+expect(restartedTimeout.releaseToSystem, "a fresh continuous 30 minutes triggers release after a cooling interruption")
 
 let profileHW = FakeHardware(); profileHW.maxima = [5349,5777]; profileHW.minima = [1350,1458]; profileHW.heat = 70
 let profileSession = ControlSession(hardware: profileHW, now: start)

@@ -33,7 +33,7 @@ struct SettingsView: View {
             authorization
             safety
             diagnostics
-            Text("FanCool \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.9")")
+            Text("FanCool \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.8.11")")
                 .font(.system(size: 10)).foregroundStyle(Palette.secondary)
         }.padding(.horizontal, 22).padding(.bottom, 22)
     }
@@ -112,7 +112,7 @@ struct SettingsView: View {
     private var safety: some View {
         VStack(alignment: .leading, spacing: 11) {
             Text("保护与启动行为").font(.system(size: 15, weight: .semibold))
-            Label("智能温度达到 90°C 时全速；持续高温或严重热压力时交回系统。", systemImage: "thermometer.high")
+            Label("智能温度达到 90°C 时保持全速；连续达到 95°C 满 30 分钟或发生控制异常时交回系统。", systemImage: "thermometer.high")
             Label("主程序退出、失联或睡眠时，请求恢复系统控制。", systemImage: "shield.lefthalf.filled")
             Label("启动默认启用已保存的智能策略；未授权或检查不通过时由系统管理。", systemImage: "power")
             Text("以上保护固定开启，静音策略也不会关闭保护。")
